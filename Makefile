@@ -34,10 +34,10 @@ clean:
 
 
 help:
-	@echo '            [app|run]'
+	@echo '            [app|icons|run]'
 
 
-# The site, build/app/ - index.html and its icon and manifest (static/), the app (lib/), PicoOCR and PicoVox (each
+# The site, build/app/ - index.html and its icons and manifest (static/), the app (lib/), PicoOCR and PicoVox (each
 # package's lib/, in picoocr/lib/ and picovox/lib/), and the service worker (sw.js - the site offline). A static site
 # can't resolve bare imports, so the app's picoocr and picovox imports are made relative.
 .PHONY: app
@@ -45,7 +45,7 @@ commit: app
 app: build/npm.build
 	rm -rf build/app/
 	mkdir -p build/app/picoocr build/app/picovox
-	cp static/index.html static/icon.svg static/manifest.webmanifest build/app/
+	cp static/index.html static/icon.svg static/*.png static/manifest.webmanifest build/app/
 	cp -R lib build/app/
 	cp -R node_modules/picoocr/lib node_modules/picoocr/package.json node_modules/picoocr/LICENSE build/app/picoocr/
 	cp -R node_modules/picovox/lib node_modules/picovox/package.json node_modules/picovox/LICENSE build/app/picovox/
@@ -80,3 +80,25 @@ export SERVICE_WORKER_SCRIPT
 .PHONY: run
 run: app
 	python3 -m http.server --directory build/app
+
+
+# The icon's PNGs (static/*.png - the home screen's, the manifest's, and the favicon's fallback), rendered from
+# static/icon.svg by headless Chrome (CHROME) - after changing the icon. The home screen's and the manifest's are full
+# squares (the system rounds them), the maskable one's icon at 80% (in Android's safe zone).
+CHROME ?= /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+ICON_RENDERS := favicon-32:32:32:transparent apple-touch-icon:180:180:%232f6f6a icon-192:192:192:%232f6f6a \
+	icon-512:512:512:%232f6f6a icon-maskable-512:512:410:%232f6f6a
+
+.PHONY: icons
+icons:
+	rm -rf build/icons
+	mkdir -p build/icons
+	cp static/icon.svg build/icons/
+	for RENDER in $(ICON_RENDERS); do \
+		NAME=`echo $$RENDER | cut -d: -f1`; SIZE=`echo $$RENDER | cut -d: -f2`; ICON=`echo $$RENDER | cut -d: -f3`; \
+		BACKGROUND=`echo $$RENDER | cut -d: -f4 | sed 's/%23/#/'`; \
+		printf '<!doctype html><html style="margin:0;background:%s"><body style="margin:0;width:%spx;height:%spx;display:grid;place-items:center"><img src="icon.svg" style="width:%spx;height:%spx;display:block"></body></html>' \
+			"$$BACKGROUND" $$SIZE $$SIZE $$ICON $$ICON > build/icons/$$NAME.html; \
+		"$(CHROME)" --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --window-size=$$SIZE,$$SIZE \
+			--default-background-color=00000000 --screenshot=static/$$NAME.png "file://$(CURDIR)/build/icons/$$NAME.html"; \
+	done

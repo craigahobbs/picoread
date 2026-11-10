@@ -22,6 +22,7 @@ Package-specific targets:
   `<package>/lib/`), the app's bare `picoocr/...` and `picovox/...` imports rewritten to relative ones, and the service
   worker with its version and files
 - `make run` - `make app`, then serve `build/app/` at http://localhost:8000/
+- `make icons` - render `static/icon.svg` into the PNG icons (`static/*.png`) with headless Chrome - after changing the icon
 
 ## Code
 
