@@ -4,8 +4,8 @@
 // browser's storage (lib/store.js). make app writes the version (a hash of the files) and the files below; a new
 // version replaces the old cache.
 
-const version = '7f96897096b96221';
-const files = ["icon.svg","./","lib/app.js","lib/camera.js","lib/ocrworker.js","lib/photo.js","lib/reader.js","lib/speechworker.js","lib/store.js","lib/text.js","manifest.webmanifest","picoocr/LICENSE","picoocr/lib/image.js","picoocr/lib/index.js","picoocr/lib/layout.js","picoocr/lib/model.js","picoocr/lib/models/recognizer.js","picoocr/package.json","picovox/LICENSE","picovox/lib/fft.js","picovox/lib/g2p.js","picovox/lib/index.js","picovox/lib/lexicon.js","picovox/lib/lf.js","picovox/lib/model.js","picovox/lib/models/g2pModel.js","picovox/lib/models/voiceModel.js","picovox/lib/package.js","picovox/lib/params.js","picovox/lib/render.js","picovox/lib/rng.js","picovox/lib/sentences.js","picovox/lib/style.js","picovox/lib/synthesis.js","picovox/lib/tokens.js","picovox/lib/transforms.js","picovox/lib/wav.js","picovox/package.json"];
+const version = '2117a713ba12d66e';
+const files = ["apple-touch-icon.png","favicon-32.png","icon-192.png","icon-512.png","icon-maskable-512.png","icon.svg","./","lib/app.js","lib/camera.js","lib/ocrworker.js","lib/photo.js","lib/reader.js","lib/speechworker.js","lib/store.js","lib/text.js","manifest.webmanifest","picoocr/LICENSE","picoocr/lib/image.js","picoocr/lib/index.js","picoocr/lib/layout.js","picoocr/lib/model.js","picoocr/lib/models/recognizer.js","picoocr/package.json","picovox/LICENSE","picovox/lib/fft.js","picovox/lib/g2p.js","picovox/lib/index.js","picovox/lib/lexicon.js","picovox/lib/lf.js","picovox/lib/model.js","picovox/lib/models/g2pModel.js","picovox/lib/models/voiceModel.js","picovox/lib/package.js","picovox/lib/params.js","picovox/lib/render.js","picovox/lib/rng.js","picovox/lib/sentences.js","picovox/lib/style.js","picovox/lib/synthesis.js","picovox/lib/tokens.js","picovox/lib/transforms.js","picovox/lib/wav.js","picovox/package.json"];
 const cacheName = `picoread-${version}`;
 
 
