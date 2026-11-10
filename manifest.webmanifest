@@ -1,0 +1,13 @@
+{
+    "name": "PicoRead",
+    "short_name": "PicoRead",
+    "description": "Photograph a document's pages and listen to it. Everything stays on your device.",
+    "start_url": "./",
+    "scope": "./",
+    "display": "standalone",
+    "background_color": "#f6f3ee",
+    "theme_color": "#f6f3ee",
+    "icons": [
+        {"src": "icon.svg", "sizes": "any", "type": "image/svg+xml"}
+    ]
+}

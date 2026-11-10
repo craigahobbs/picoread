@@ -1,0 +1,42 @@
+{
+    "type": "module",
+    "name": "picoocr",
+    "version": "1.0.0",
+    "description": "PicoOCR - text recognition in pure JavaScript, its neural network in the code",
+    "keywords": [
+        "ocr",
+        "text-recognition",
+        "neural-network",
+        "offline"
+    ],
+    "homepage": "https://github.com/craigahobbs/picoocr#readme",
+    "bugs": "https://github.com/craigahobbs/picoocr/issues",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/craigahobbs/picoocr.git"
+    },
+    "license": "MIT",
+    "author": {
+        "name": "Craig A. Hobbs",
+        "email": "craigahobbs@gmail.com",
+        "url": "https://github.com/craigahobbs"
+    },
+    "main": "./lib/index.js",
+    "exports": {
+        ".": "./lib/index.js",
+        "./lib/*": "./lib/*"
+    },
+    "files": [
+        "lib/**/*"
+    ],
+    "scripts": {
+        "test": "node --test"
+    },
+    "devDependencies": {
+        "@eslint/js": "~10.0",
+        "c8": "~12.0",
+        "eslint": "~10.14",
+        "globals": "~17.14",
+        "jsdoc": "~4.0"
+    }
+}
