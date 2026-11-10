@@ -1,12 +1,12 @@
 {
-    "name": "webbo",
+    "name": "picoread",
     "private": true,
     "type": "module",
-    "description": "Webbo - photograph a document's pages and listen to it. Everything stays on your device.",
-    "homepage": "https://github.com/craigahobbs/webbo#readme",
+    "description": "PicoRead - photograph a document's pages and listen to it. Everything stays on your device.",
+    "homepage": "https://github.com/craigahobbs/picoread#readme",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/craigahobbs/webbo.git"
+        "url": "git+https://github.com/craigahobbs/picoread.git"
     },
     "author": {
         "name": "Craig A. Hobbs",

@@ -1,5 +1,5 @@
 // Licensed under the MIT License
-// https://github.com/craigahobbs/webbo/blob/main/LICENSE
+// https://github.com/craigahobbs/picoread/blob/main/LICENSE
 
 import {strict as assert} from 'node:assert';
 import test from 'node:test';

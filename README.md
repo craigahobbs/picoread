@@ -1,6 +1,6 @@
-# Webbo
+# PicoRead
 
-Webbo turns a paper document into one you can listen to. Photograph its pages in order, and Webbo reads their text
+PicoRead turns a paper document into one you can listen to. Photograph its pages in order, and PicoRead reads their text
 and speaks it - all in your browser, on your device:
 
 - **Pages** - take photos with the camera (or choose them), reorder them, retake a page's reading, fix its text
@@ -11,13 +11,13 @@ and speaks it - all in your browser, on your device:
 - **Storage** - the documents and their text in localStorage, the page photos in IndexedDB (localStorage's few
   megabytes hold only a handful of photos), and the reading position in sessionStorage - nothing leaves the device
 
-Webbo's runtime dependencies are its family's: PicoOCR (`../picoocr` - a file dependency until it's published)
+PicoRead's runtime dependencies are its family's: PicoOCR (`../picoocr` - a file dependency until it's published)
 and PicoVox.
 
 
 ## Development
 
-Webbo is a [javascript-build](https://github.com/craigahobbs/javascript-build#readme) package:
+PicoRead is a [javascript-build](https://github.com/craigahobbs/javascript-build#readme) package:
 
 ~~~
 make commit      # tests, lint, docs, 100% coverage - and PicoOCR's gate

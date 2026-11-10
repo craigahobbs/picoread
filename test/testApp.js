@@ -1,5 +1,5 @@
 // Licensed under the MIT License
-// https://github.com/craigahobbs/webbo/blob/main/LICENSE
+// https://github.com/craigahobbs/picoread/blob/main/LICENSE
 
 import {RATES, element, main, statusText} from '../lib/app.js';
 import {fakeIndexedDB, fakeReader, fakeStorage} from './helpers.js';
@@ -27,13 +27,13 @@ async function settle() {
 // A started app and its fakes - options: documents and settings (localStorage), voices, confirm (its answer), the
 // photo store's photos {pageId: blob}, and a preparePhoto that fails for a file "bad"
 function setup(options = {}) {
-    const dom = new JSDOM(indexHtml, {'url': 'https://example.com/webbo/'});
+    const dom = new JSDOM(indexHtml, {'url': 'https://example.com/picoread/'});
     const {window} = dom;
     if (options.documents !== undefined) {
-        window.localStorage.setItem('webbo-documents-v1', JSON.stringify(options.documents));
+        window.localStorage.setItem('picoread-documents-v1', JSON.stringify(options.documents));
     }
     if (options.settings !== undefined) {
-        window.localStorage.setItem('webbo-settings-v1', options.settings);
+        window.localStorage.setItem('picoread-settings-v1', options.settings);
     }
     const reader = fakeReader(options.voices);
     window.confirm = () => options.confirm ?? true;
@@ -121,7 +121,7 @@ test('statusText', () => {
 
 test('library', () => {
     const {window, query, queryAll} = setup();
-    assert.equal(query('h1').textContent, 'Webbo');
+    assert.equal(query('h1').textContent, 'PicoRead');
     assert.match(query('.empty').textContent, /No documents yet/);
     assert.equal(query('#app').textContent.includes('null'), false);
 
@@ -141,7 +141,7 @@ test('library', () => {
     query('.back').click();
     assert.deepEqual(queryAll('.documents .title').map((title) => title.textContent), ['Recipe']);
     assert.match(query('.documents small').textContent, /^0 pages · /);
-    assert.equal(JSON.parse(window.sessionStorage.getItem('webbo-session-v1')).documentId, null);
+    assert.equal(JSON.parse(window.sessionStorage.getItem('picoread-session-v1')).documentId, null);
 
     // Open it again
     query('.documents .open').click();
@@ -306,7 +306,7 @@ test('page actions', async () => {
     // Edit a page's text
     queryAll('.text')[0].value = 'TWO';
     queryAll('.text')[0].dispatchEvent(new window.Event('input'));
-    assert.equal(JSON.parse(window.localStorage.getItem('webbo-documents-v1'))[0].pages[0].text, 'TWO');
+    assert.equal(JSON.parse(window.localStorage.getItem('picoread-documents-v1'))[0].pages[0].text, 'TWO');
 
     // Delete a page
     queryAll('.page .delete')[1].click();
@@ -349,13 +349,13 @@ test('reading aloud', () => {
     // The next chunk
     reader.advance(1);
     assert.equal(query('.now-reading').textContent, 'Two.');
-    assert.equal(JSON.parse(window.sessionStorage.getItem('webbo-session-v1')).chunk, 1);
+    assert.equal(JSON.parse(window.sessionStorage.getItem('picoread-session-v1')).chunk, 1);
 
     // A new voice - it plays on from the chunk
     query('.voice').value = 'female';
     query('.voice').dispatchEvent(new window.Event('change'));
     assert.deepEqual(reader.plays[1], {'texts': ['One.', 'Two.', 'Three.'], 'start': 1, 'settings': {'voice': 'female', 'rate': 1.25}});
-    assert.equal(JSON.parse(window.localStorage.getItem('webbo-settings-v1')).voice, 'female');
+    assert.equal(JSON.parse(window.localStorage.getItem('picoread-settings-v1')).voice, 'female');
 
     // Pause - the sentence still shown - then resume (no new playback)
     query('.play').click();
@@ -383,7 +383,7 @@ test('reading aloud', () => {
     assert.deepEqual(queryAll('.page').map((page) => page.classList.contains('reading')), [false, true]);
     reader.end();
     assert.equal(query('.play').textContent, 'Play');
-    assert.equal(JSON.parse(window.sessionStorage.getItem('webbo-session-v1')).chunk, 0);
+    assert.equal(JSON.parse(window.sessionStorage.getItem('picoread-session-v1')).chunk, 0);
 
     // The speed changed while stopped, then from the start
     query('.rate').value = '2';
@@ -410,7 +410,7 @@ test('reading a document without text', () => {
 
 
 test('storage unavailable', () => {
-    const dom = new JSDOM(indexHtml, {'url': 'https://example.com/webbo/'});
+    const dom = new JSDOM(indexHtml, {'url': 'https://example.com/picoread/'});
     const {window} = dom;
     const failing = fakeStorage(true);
     Object.defineProperty(window, 'localStorage', {'value': failing});
@@ -434,7 +434,7 @@ test('corrupt settings', () => {
 
 
 test('default services', async () => {
-    const dom = new JSDOM(indexHtml, {'url': 'https://example.com/webbo/'});
+    const dom = new JSDOM(indexHtml, {'url': 'https://example.com/picoread/'});
     const {window} = dom;
     window.indexedDB = fakeIndexedDB();
     const workers = [];
@@ -536,7 +536,7 @@ test('default services', async () => {
 
 
 test('no IndexedDB - photos in memory', async () => {
-    const dom = new JSDOM(indexHtml, {'url': 'https://example.com/webbo/'});
+    const dom = new JSDOM(indexHtml, {'url': 'https://example.com/picoread/'});
     const {window} = dom;
     window.URL.createObjectURL = (blob) => `blob:${blob}`;
     const app = main(window, {'createWorker': () => ({'postMessage': () => null}), 'preparePhoto': () => Promise.resolve('jpeg')});
@@ -550,7 +550,7 @@ test('no IndexedDB - photos in memory', async () => {
 
 
 test('take photos with the camera', async () => {
-    const dom = new JSDOM(indexHtml, {'url': 'https://example.com/webbo/'});
+    const dom = new JSDOM(indexHtml, {'url': 'https://example.com/picoread/'});
     const {window} = dom;
     window.URL.createObjectURL = (blob) => `blob:${blob}`;
     const photos = new Map();
@@ -656,9 +656,9 @@ test('turn and flip a page', async () => {
 
 
 test('a page turned while its photo loads to be read', async () => {
-    const dom = new JSDOM(indexHtml, {'url': 'https://example.com/webbo/'});
+    const dom = new JSDOM(indexHtml, {'url': 'https://example.com/picoread/'});
     const {window} = dom;
-    window.localStorage.setItem('webbo-documents-v1', JSON.stringify([testDocument([''], 'pending')]));
+    window.localStorage.setItem('picoread-documents-v1', JSON.stringify([testDocument([''], 'pending')]));
     window.URL.createObjectURL = (blob) => `blob:${blob}`;
     const photos = new Map([['p0', 'a']]);
     let releaseFirst = null;

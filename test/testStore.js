@@ -1,5 +1,5 @@
 // Licensed under the MIT License
-// https://github.com/craigahobbs/webbo/blob/main/LICENSE
+// https://github.com/craigahobbs/picoread/blob/main/LICENSE
 
 import {fakeIndexedDB, fakeStorage} from './helpers.js';
 import {loadDocuments, loadSession, memoryImages, newId, openImages, saveDocuments, saveSession} from '../lib/store.js';
@@ -22,11 +22,11 @@ test('documents', () => {
     assert.deepEqual(loadDocuments(storage), documents);
 
     // Not a list, not JSON, not an object
-    storage.setItem('webbo-documents-v1', '{"id": 1}');
+    storage.setItem('picoread-documents-v1', '{"id": 1}');
     assert.deepEqual(loadDocuments(storage), []);
-    storage.setItem('webbo-documents-v1', 'not JSON');
+    storage.setItem('picoread-documents-v1', 'not JSON');
     assert.deepEqual(loadDocuments(storage), []);
-    storage.setItem('webbo-documents-v1', '7');
+    storage.setItem('picoread-documents-v1', '7');
     assert.deepEqual(loadDocuments(storage), []);
 
     // Unavailable storage

@@ -1,6 +1,6 @@
 {
-    "name": "Webbo",
-    "short_name": "Webbo",
+    "name": "PicoRead",
+    "short_name": "PicoRead",
     "description": "Photograph a document's pages and listen to it. Everything stays on your device.",
     "start_url": "./",
     "scope": "./",

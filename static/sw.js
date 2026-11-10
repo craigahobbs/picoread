@@ -1,4 +1,4 @@
-// The service worker - Webbo offline. The site's files (the app, and PicoOCR with its model) are cached when it
+// The service worker - PicoRead offline. The site's files (the app, and PicoOCR with its model) are cached when it
 // installs, and each request for them is answered from the network when it can (so a new version is used at once),
 // else from the cache - the page (with any search or hash) from the cached index. The documents themselves are in the
 // browser's storage (lib/store.js). make app writes the version (a hash of the files) and the files below; a new
@@ -6,7 +6,7 @@
 
 const version = 'development';
 const files = [];
-const cacheName = `webbo-${version}`;
+const cacheName = `picoread-${version}`;
 
 
 // Install - cache the site's files
@@ -18,7 +18,7 @@ self.addEventListener('install', (event) => {
 // Activate - delete the older versions' caches, and serve the open pages
 self.addEventListener('activate', (event) => {
     event.waitUntil(caches.keys().then((names) => Promise.all(
-        names.filter((name) => name.startsWith('webbo-') && name !== cacheName).map((name) => caches.delete(name))
+        names.filter((name) => name.startsWith('picoread-') && name !== cacheName).map((name) => caches.delete(name))
     )).then(() => self.clients.claim()));
 });
 

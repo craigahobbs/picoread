@@ -1,5 +1,5 @@
 // Licensed under the MIT License
-// https://github.com/craigahobbs/webbo/blob/main/LICENSE
+// https://github.com/craigahobbs/picoread/blob/main/LICENSE
 
 import {MAX_CHUNK, chunkSentence, documentText, paragraphs, readingChunks, sentences} from '../lib/text.js';
 import {strict as assert} from 'node:assert';

@@ -1,5 +1,5 @@
 // Licensed under the MIT License
-// https://github.com/craigahobbs/webbo/blob/main/LICENSE
+// https://github.com/craigahobbs/picoread/blob/main/LICENSE
 
 import {captureFrame, hasCamera, openCamera} from '../lib/camera.js';
 import {JSDOM} from 'jsdom';
