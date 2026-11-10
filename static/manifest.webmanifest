@@ -1,7 +1,7 @@
 {
     "name": "PicoRead",
     "short_name": "PicoRead",
-    "description": "Photograph a document's pages and listen to it. Everything stays on your device.",
+    "description": "Printed pages, read aloud. Right on your device.",
     "start_url": "./",
     "scope": "./",
     "display": "standalone",

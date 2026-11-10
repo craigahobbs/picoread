@@ -122,6 +122,8 @@ test('statusText', () => {
 test('library', () => {
     const {window, query, queryAll} = setup();
     assert.equal(query('h1').textContent, 'PicoRead');
+    assert.equal(query('.tagline').textContent, 'Printed pages, read aloud.');
+    assert.equal(query('.masthead-icon').getAttribute('src'), 'icon.svg');
     assert.match(query('.empty').textContent, /No documents yet/);
     assert.equal(query('#app').textContent.includes('null'), false);
 
