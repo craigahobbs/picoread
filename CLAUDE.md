@@ -14,8 +14,7 @@ Local Makefile overrides:
 - `GHPAGES_SRC` - `build/app/`
 - `USE_JSDOM` - jsdom is a development dependency (the app's tests)
 - `ESLINT_ARGS` - also `static/sw.js`
-- `C8_ARGS` - without `--allowExternal` (PicoOCR, `../picoocr`, has its own gate)
-- `commit` also depends on `app` and `commit-picoocr` (`make -C ../picoocr commit`)
+- `commit` also depends on `app`
 
 Package-specific targets:
 
@@ -26,8 +25,7 @@ Package-specific targets:
 
 ## Code
 
-- `lib/` - the app (browser ES modules). PicoOCR (`picoocr/lib/...` - a `file:../picoocr` dependency) and PicoVox
-  (`picovox/lib/...` - npm) are imported bare, so the code runs under Node's tests as is.
-- `../picoocr` - the PicoOCR package and its training (its own repository and `CLAUDE.md`), a sibling of this one
+- `lib/` - the app (browser ES modules). PicoOCR (`picoocr/lib/...`) and PicoVox (`picovox/lib/...`), npm packages,
+  are imported bare, so the code runs under Node's tests as is.
 - `test/` - `node --test` unit tests; jsdom stands in for the browser; `test/helpers.js` - the shared fakes
 - Runs must be clean: no warnings in tests or builds - fix them, or silence one with a comment saying why

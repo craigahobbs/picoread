@@ -29,23 +29,12 @@ include Makefile.base
 ESLINT_ARGS := $(ESLINT_ARGS) static/sw.js
 
 
-# The app's coverage - its own sources (without --allowExternal: PicoOCR, ../picoocr, is its own package's gate)
-C8_ARGS := --100 --all --src lib/ --src test/
-
-
 clean:
 	rm -rf Makefile.base jsdoc.json eslint.config.js
 
 
 help:
 	@echo '            [app|run]'
-
-
-# PicoOCR (../picoocr - its own javascript-build package, a file dependency): make commit runs its gate too
-.PHONY: commit-picoocr
-commit: commit-picoocr
-commit-picoocr:
-	$(MAKE) -C ../picoocr commit
 
 
 # The site, build/app/ - index.html and its icon and manifest (static/), the app (lib/), PicoOCR and PicoVox (each
@@ -58,7 +47,7 @@ app: build/npm.build
 	mkdir -p build/app/picoocr build/app/picovox
 	cp static/index.html static/icon.svg static/manifest.webmanifest build/app/
 	cp -R lib build/app/
-	cp -RL node_modules/picoocr/lib node_modules/picoocr/package.json node_modules/picoocr/LICENSE build/app/picoocr/
+	cp -R node_modules/picoocr/lib node_modules/picoocr/package.json node_modules/picoocr/LICENSE build/app/picoocr/
 	cp -R node_modules/picovox/lib node_modules/picovox/package.json node_modules/picovox/LICENSE build/app/picovox/
 	for FILE in `find build/app/lib -name '*.js'`; do \
 		PREFIX=`dirname $$FILE | sed -E -e 's#^build/app/##' -e 's#[^/]+#..#g'`; \

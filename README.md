@@ -11,8 +11,7 @@ and speaks it - all in your browser, on your device:
 - **Storage** - the documents and their text in localStorage, the page photos in IndexedDB (localStorage's few
   megabytes hold only a handful of photos), and the reading position in sessionStorage - nothing leaves the device
 
-PicoRead's runtime dependencies are its family's: PicoOCR (`../picoocr` - a file dependency until it's published)
-and PicoVox.
+PicoRead's runtime dependencies are its family's: PicoOCR and PicoVox.
 
 
 ## Development

@@ -14,7 +14,7 @@
         "url": "https://github.com/craigahobbs"
     },
     "dependencies": {
-        "picoocr": "file:../picoocr",
+        "picoocr": "~1.0",
         "picovox": "~2.0"
     },
     "devDependencies": {
