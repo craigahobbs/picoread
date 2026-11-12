@@ -17,6 +17,11 @@
 // context network - a character GRU reading each of the window's items (the words and phrase-end marks around the word)
 // to a vector, a bidirectional GRU over the window, its middle outputs' tanh layer gated by the word's own vector's, and
 // the reading slots' logits - chooses the reading. No word list or rule.
+//
+// Words in capitals: a spelled head (a tanh layer and two logits on the encoder's final states, as the ambiguity head)
+// says whether a word written in capitals is spelled - its letters' names ("AI", "TOC") - or read as a word ("NOT",
+// "NASA"): one logit for a word alone among lowercase words ("the US government" - spelled), one for a word beside words
+// in capitals ("LEAVE US ALONE" - read).
 
 import {decodeBase64, inflateRaw} from './package.js';
 
@@ -75,15 +80,33 @@ export function unpackTensors(model, bytes) {
 }
 
 
-// result[0:rows] = matrix[rows, columns] @ vector (from vectorOffset) + bias, into a preallocated result
-function matrixVector(result, matrix, rows, columns, vector, vectorOffset, bias) {
+// result[0:rows] = matrix[rows, columns] @ vector (from vectorOffset) + bias (null for none), into a preallocated result
+// (not the vector) - each row's sum in its columns' order, as a row at a time sums it. The columns are taken sixteen at
+// a time down the rows, the vector's values in locals, and then the columns past a multiple of sixteen one at a time -
+// for engines without a JIT, where an array read costs several times a product of locals (the paper's Section 12.4)
+export function matrixVector(result, matrix, rows, columns, vector, vectorOffset, bias) {
     for (let row = 0; row < rows; row++) {
-        let sum = bias[row];
-        const base = row * columns;
-        for (let column = 0; column < columns; column++) {
-            sum += matrix[base + column] * vector[vectorOffset + column];
+        result[row] = bias === null ? 0 : bias[row];
+    }
+    let column = 0;
+    for (; column + 16 <= columns; column += 16) {
+        const base = vectorOffset + column;
+        const v00 = vector[base]; const v01 = vector[base + 1]; const v02 = vector[base + 2]; const v03 = vector[base + 3];
+        const v04 = vector[base + 4]; const v05 = vector[base + 5]; const v06 = vector[base + 6]; const v07 = vector[base + 7];
+        const v08 = vector[base + 8]; const v09 = vector[base + 9]; const v10 = vector[base + 10]; const v11 = vector[base + 11];
+        const v12 = vector[base + 12]; const v13 = vector[base + 13]; const v14 = vector[base + 14]; const v15 = vector[base + 15];
+        for (let row = 0, ix = column; row < rows; row++, ix += columns) {
+            result[row] = result[row] + matrix[ix] * v00 + matrix[ix + 1] * v01 + matrix[ix + 2] * v02 + matrix[ix + 3] * v03 +
+                matrix[ix + 4] * v04 + matrix[ix + 5] * v05 + matrix[ix + 6] * v06 + matrix[ix + 7] * v07 +
+                matrix[ix + 8] * v08 + matrix[ix + 9] * v09 + matrix[ix + 10] * v10 + matrix[ix + 11] * v11 +
+                matrix[ix + 12] * v12 + matrix[ix + 13] * v13 + matrix[ix + 14] * v14 + matrix[ix + 15] * v15;
         }
-        result[row] = sum;
+    }
+    for (; column < columns; column++) {
+        const value = vector[vectorOffset + column];
+        for (let row = 0, ix = column; row < rows; row++, ix += columns) {
+            result[row] += matrix[ix] * value;
+        }
     }
 }
 
@@ -145,6 +168,14 @@ function encode(encoder, ids, outputs, ends, scratch) {
         outputs.set(state, step * 2 * hidden + hidden);
     }
     ends.set(state, hidden);
+}
+
+
+// tanh of the first count values, in place
+function tanhInPlace(values, count) {
+    for (let ix = 0; ix < count; ix++) {
+        values[ix] = Math.tanh(values[ix]);
+    }
 }
 
 
@@ -238,8 +269,10 @@ async function loadContext(context) {
 
 // Load a G2P model (lib/models/g2pModel.js's g2pModel) - returns pronounce(word, reading = 0), the word's ARPAbet phones
 // with stress (for example, ['K', 'W', 'IY1', 'K', 'W', 'EH2', 'G']) in a reading, cached per word and reading.
-// pronounce also has ambiguous(word) (the ambiguity head - whether the word's reading depends on its neighbors) and
-// chooseReading(items, index) (the context network's reading for the word at index in a text's items).
+// pronounce also has ambiguous(word) (the ambiguity head - whether the word's reading depends on its neighbors),
+// chooseReading(items, index) (the context network's reading for the word at index in a text's items), and
+// spelled(word, beside = false) (the spelled head - whether the word, written in capitals, is spelled: its letters'
+// names - alone among lowercase words, or beside a word in capitals).
 export async function loadG2p(model) {
     const tensors = unpackTensors(model, await weightBytes(model));
     const {embed, hidden, decoder, maxLetters} = model;
@@ -254,8 +287,6 @@ export async function loadG2p(model) {
     };
     const decoderGru = gruWeights(tensors, 'decoder', '', decoder);
     const phoneTable = inputTable(decoderGru, tensors.get('phone_embed.weight'), phoneCount, embed);
-    const attention = tensors.get('attention.weight');
-    const combine = tensors.get('combine.weight');
     const combineBias = tensors.get('combine.bias');
     const output = tensors.get('output.weight');
     const outputBias = tensors.get('output.bias');
@@ -266,12 +297,34 @@ export async function loadG2p(model) {
     const ambiguityLayerBias = tensors.get('ambiguity_layer.bias');
     const ambiguityWeights = tensors.get('ambiguity.weight');
     const ambiguityBias = tensors.get('ambiguity.bias');
+    const spelledLayer = tensors.get('spelled_layer.weight');
+    const spelledLayerBias = tensors.get('spelled_layer.bias');
+    const spelledWeights = tensors.get('spelled.weight');
+    const spelledBias = tensors.get('spelled.bias');
     const width = 2 * hidden;
 
-    // Preallocated buffers - the encoder's outputs, the attention keys and the combine layer's context half per letter
+    // The attention's weights transposed ([decoder, width] - a letter's key is attention^T @ its encoder output), and the
+    // combine layer's weights' two halves ([decoder, decoder] of the decoder's state, [decoder, width] of the context)
+    const attention = tensors.get('attention.weight');
+    const combine = tensors.get('combine.weight');
+    const attentionTransposed = new Float64Array(decoder * width);
+    const combineState = new Float64Array(decoder * decoder);
+    const combineContext = new Float64Array(decoder * width);
+    for (let row = 0; row < decoder; row++) {
+        for (let column = 0; column < width; column++) {
+            attentionTransposed[row * width + column] = attention[column * decoder + row];
+        }
+        const combineRow = row * (decoder + width);
+        combineState.set(combine.subarray(combineRow, combineRow + decoder), row * decoder);
+        combineContext.set(combine.subarray(combineRow + decoder, combineRow + decoder + width), row * width);
+    }
+
+    // Preallocated buffers - the encoder's outputs, the letters' attention keys ([letters, decoder] - and each letter's
+    // row of them), and each letter's context value (the combine layer's context half of its encoder output)
     const encoded = new Float64Array(maxLetters * width);
     const keys = new Float64Array(maxLetters * decoder);
-    const values = new Float64Array(maxLetters * decoder);
+    const letterKeys = Array.from({'length': maxLetters}, (_unused, step) => keys.subarray(step * decoder, (step + 1) * decoder));
+    const letterValues = Array.from({'length': maxLetters}, () => new Float64Array(decoder));
     const scratch = new Float64Array(3 * Math.max(hidden, decoder));
     const ends = new Float64Array(width);
     const state = new Float64Array(decoder);
@@ -280,20 +333,22 @@ export async function loadG2p(model) {
     const weights = new Float64Array(maxLetters);
     const ambiguity = new Float64Array(1);
     const ambiguityHidden = new Float64Array(ambiguityLayerBias.length);
+    const spelled = new Float64Array(2);
+    const spelledHidden = new Float64Array(spelledLayerBias.length);
 
-    // Pronounce letter ids in a reading - phone ids (and the ambiguity head's logit into ambiguity)
+    // Pronounce letter ids in a reading - phone ids (and the ambiguity and spelled heads' logits into ambiguity and
+    // spelled)
     const pronounceIds = (ids, reading) => {
         const steps = ids.length;
         encode(encoder, ids, encoded, ends, scratch);
         matrixVector(state, bridge, decoder, width, ends, 0, bridgeBias);
-        for (let ix = 0; ix < decoder; ix++) {
-            state[ix] = Math.tanh(state[ix]);
-        }
+        tanhInPlace(state, decoder);
         matrixVector(ambiguityHidden, ambiguityLayer, ambiguityHidden.length, width, ends, 0, ambiguityLayerBias);
-        for (let ix = 0; ix < ambiguityHidden.length; ix++) {
-            ambiguityHidden[ix] = Math.tanh(ambiguityHidden[ix]);
-        }
+        tanhInPlace(ambiguityHidden, ambiguityHidden.length);
         matrixVector(ambiguity, ambiguityWeights, 1, ambiguityHidden.length, ambiguityHidden, 0, ambiguityBias);
+        matrixVector(spelledHidden, spelledLayer, spelledHidden.length, width, ends, 0, spelledLayerBias);
+        tanhInPlace(spelledHidden, spelledHidden.length);
+        matrixVector(spelled, spelledWeights, 2, spelledHidden.length, spelledHidden, 0, spelledBias);
         if (reading > 0) {
             for (let ix = 0; ix < decoder; ix++) {
                 state[ix] += readingWeights[(reading - 1) * decoder + ix];
@@ -302,18 +357,8 @@ export async function loadG2p(model) {
 
         // Each letter's attention key (attention^T @ encoded) and context value (combine's context half @ encoded)
         for (let step = 0; step < steps; step++) {
-            const base = step * width;
-            for (let row = 0; row < decoder; row++) {
-                let keySum = 0;
-                let valueSum = 0;
-                const combineBase = row * (decoder + width) + decoder;
-                for (let column = 0; column < width; column++) {
-                    keySum += attention[column * decoder + row] * encoded[base + column];
-                    valueSum += combine[combineBase + column] * encoded[base + column];
-                }
-                keys[step * decoder + row] = keySum;
-                values[step * decoder + row] = valueSum;
-            }
+            matrixVector(letterKeys[step], attentionTransposed, decoder, width, encoded, step * width, null);
+            matrixVector(letterValues[step], combineContext, decoder, width, encoded, step * width, null);
         }
 
         // Decode greedily until <eos> - at most 3 phones a letter, plus 6 (the letter "w" is 7 phones)
@@ -321,31 +366,25 @@ export async function loadG2p(model) {
         let previous = 1;
         for (let phoneStep = 0; phoneStep < 3 * steps + 6; phoneStep++) {
             gruStep(decoderGru, phoneTable, previous * 3 * decoder, state, scratch);
+            matrixVector(weights, keys, steps, decoder, state, 0, null);
             let maxScore = -Infinity;
             for (let letter = 0; letter < steps; letter++) {
-                let score = 0;
-                for (let ix = 0; ix < decoder; ix++) {
-                    score += keys[letter * decoder + ix] * state[ix];
-                }
-                weights[letter] = score;
-                maxScore = Math.max(maxScore, score);
+                maxScore = Math.max(maxScore, weights[letter]);
             }
             let total = 0;
             for (let letter = 0; letter < steps; letter++) {
                 weights[letter] = Math.exp(weights[letter] - maxScore);
                 total += weights[letter];
             }
-            for (let row = 0; row < decoder; row++) {
-                let sum = combineBias[row];
-                const combineBase = row * (decoder + width);
-                for (let column = 0; column < decoder; column++) {
-                    sum += combine[combineBase + column] * state[column];
+            matrixVector(combined, combineState, decoder, decoder, state, 0, combineBias);
+            for (let letter = 0; letter < steps; letter++) {
+                const weight = weights[letter] / total;
+                const letterValue = letterValues[letter];
+                for (let row = 0; row < decoder; row++) {
+                    combined[row] += weight * letterValue[row];
                 }
-                for (let letter = 0; letter < steps; letter++) {
-                    sum += weights[letter] / total * values[letter * decoder + row];
-                }
-                combined[row] = Math.tanh(sum);
             }
+            tanhInPlace(combined, decoder);
             matrixVector(logits, output, phoneCount, decoder, combined, 0, outputBias);
             const best = argmax(logits, phoneCount);
             if (best <= 1) {
@@ -357,11 +396,12 @@ export async function loadG2p(model) {
         return phones;
     };
 
-    // The pronouncer - phones cached per reading and word, the ambiguity head's decision per word (made when the word is
-    // first pronounced)
+    // The pronouncer - phones cached per reading and word, the ambiguity and spelled heads' decisions per word (made when
+    // the word is first pronounced)
     const letterIds = new Map([...model.letters].map((letter, ix) => [letter, ix + 1]));
     const caches = Array.from({'length': model.readings}, () => new Map());
     const ambiguousWords = new Map();
+    const spelledWords = new Map();
     const pronounce = (word, reading = 0) => {
         const cache = caches[reading];
         let phones = cache.get(word);
@@ -371,6 +411,7 @@ export async function loadG2p(model) {
             cache.set(word, phones);
             if (reading === 0) {
                 ambiguousWords.set(word, ids.length !== 0 && ambiguity[0] > 0);
+                spelledWords.set(word, [ids.length !== 0 && spelled[0] > 0, ids.length !== 0 && spelled[1] > 0]);
             }
         }
         return phones;
@@ -380,6 +421,12 @@ export async function loadG2p(model) {
             pronounce(word);
         }
         return ambiguousWords.get(word);
+    };
+    pronounce.spelled = (word, beside = false) => {
+        if (!spelledWords.has(word)) {
+            pronounce(word);
+        }
+        return spelledWords.get(word)[beside ? 1 : 0];
     };
     pronounce.chooseReading = await loadContext(model.context);
     return pronounce;
